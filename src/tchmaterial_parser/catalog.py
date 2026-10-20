@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # 获取平台上的资源目录树，并提供按分类路径筛选与计数的辅助函数
+# 本模块不依赖 tkinter，桌面版与 Web 版共用
+
+from collections.abc import Iterator
 
 from .network import session
 
@@ -151,3 +154,34 @@ def count_resource_items(items: dict[str, dict]) -> int: # 统计资源树中的
         count_resource_items(children) if (children := option_data.get("children", {})) else 1
         for option_data in items.values()
     )
+
+
+def build_resource_url(item_path: str, resource_data: dict) -> str: # 根据树项路径与资源数据生成资源页面链接
+    resource_type = resource_data.get("resource_type_code") or "assets_document"
+    content_id = resource_data.get("content_id") or item_path.split(":")[-1]
+    root_id = item_path.split(":")[0]
+    if resource_type == "teachingmaterials":
+        return f"https://basic.smartedu.cn/syncClassroom{'/prepare' if root_id == '__internal_prepare_lesson' else ''}?defaultTag={'%2F'.join(item_path.split(':')[1:])}"
+    return f"https://basic.smartedu.cn/tchMaterial/detail?contentType={resource_type}&contentId={content_id}&catalogType=tchMaterial&subCatalog=tchMaterial"
+
+def iter_leaf_resources(items: dict[str, dict], parent_path: str = "") -> Iterator[tuple[str, dict]]: # 遍历分类子树，产出每个末级资源的（树项路径， 资源数据）
+    for option_id, option_data in items.items():
+        item_path = f"{parent_path}:{option_id}" if parent_path else option_id
+        children: dict[str, dict] = option_data.get("children", {})
+        if children: # 分类节点继续向下遍历
+            yield from iter_leaf_resources(children, item_path)
+        else:
+            yield item_path, option_data
+
+def collect_resource_urls(items: dict[str, dict], parent_path: str = "") -> list[str]: # 递归收集分类子树中所有末级资源的链接
+    return [build_resource_url(item_path, resource_data) for item_path, resource_data in iter_leaf_resources(items, parent_path)]
+
+def find_tree_node(items: dict[str, dict], item_path: str) -> dict | None: # 按树项路径在分类树中定位节点数据
+    node = None
+    branch = items
+    for segment in item_path.split(":"):
+        node = branch.get(segment)
+        if node is None:
+            return None
+        branch = node.get("children", {})
+    return node

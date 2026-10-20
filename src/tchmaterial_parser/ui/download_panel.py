@@ -1,15 +1,25 @@
 # -*- coding: utf-8 -*-
 # 下载面板：解析并复制直链、下载资源文件与进度反馈
 # 本模块持有与下载相关的几个控件句柄，因此这些控件的读写不必跨模块
+#
+# Web 版复用本模块的下载引擎（request_download / download_file / 路径分配等），
+# 因此 tkinter 采用容错导入：精简镜像缺少 tkinter 时，仅依赖 Tk 的界面函数不可用，
+# 引擎部分照常工作。
+
+from __future__ import annotations
 
 import os, re, threading, time, traceback
-import tkinter as tk
 from collections import Counter
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from tkinter import ttk, messagebox, filedialog
 from urllib.parse import urlsplit, urlunsplit
 from xml.etree import ElementTree
+
+try:
+    import tkinter as tk
+    from tkinter import ttk, messagebox, filedialog
+except ImportError: # Web 版镜像未安装 tkinter，界面相关名字置为 None
+    tk = ttk = messagebox = filedialog = None
 
 from requests import RequestException
 

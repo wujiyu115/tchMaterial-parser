@@ -1,0 +1,12 @@
+# Web 版运行时依赖（桌面版依赖见 pyproject.toml）
+# 桌面专属的 sv-ttk / pywin32 / psutil 不在其中：Web 版镜像不安装 tkinter。
+
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.7,<3
+python-multipart>=0.0.9
+requests>=2.31,<3
+pypdf>=6.18,<7
+pillow>=10,<13
+# PDF 首页渲染为书封；单文件部署、无额外二进制依赖
+pymupdf>=1.24,<2

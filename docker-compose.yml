@@ -1,0 +1,22 @@
+services:
+  tchmaterial:
+    image: ghcr.io/wujiyu115/tchmaterial-parser-web:latest
+    container_name: tchmaterial-parser
+    restart: unless-stopped
+    ports:
+      - "6109:8080"
+    environment:
+      - TZ=Asia/Shanghai
+      - PORT=8080
+      # 需要与宿主机 appdata 属主一致时设置（Unraid 默认 99:100）
+      - PUID=${PUID:-0}
+      - PGID=${PGID:-0}
+    volumes:
+      # 教材文件、下载记录与登录凭据都在这里，删除容器不会丢失
+      - /mnt/user/appdata/tchMaterial-parser:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

@@ -3,7 +3,6 @@
 
 import io
 import tkinter as tk
-from collections.abc import Iterator
 from tkinter import ttk
 import tkinter.font as tkfont
 from PIL import Image, ImageDraw, ImageOps, ImageTk
@@ -11,40 +10,20 @@ from PIL import Image, ImageDraw, ImageOps, ImageTk
 from . import runtime, theme
 from .runtime import scaled, thread_it, ui_call
 from .widgets import auto_hide_scrollbar, bind_context_menu
-from ..catalog import count_resource_items, filter_resource_items
+# 资源树中与 Tk 无关的遍历、链接构造辅助函数位于 catalog，桌面版与 Web 版共用
+from ..catalog import (
+    build_resource_url,
+    collect_resource_urls,
+    count_resource_items,
+    filter_resource_items,
+    find_tree_node,
+    iter_leaf_resources,
+)
 from ..images import fit_cover_image
 from ..network import session
 from ..platform_utils import os_name, print_error
 
-def build_resource_url(item_path: str, resource_data: dict) -> str: # 根据树项路径与资源数据生成资源页面链接
-    resource_type = resource_data.get("resource_type_code") or "assets_document"
-    content_id = resource_data.get("content_id") or item_path.split(":")[-1]
-    root_id = item_path.split(":")[0]
-    if resource_type == "teachingmaterials":
-        return f"https://basic.smartedu.cn/syncClassroom{'/prepare' if root_id == '__internal_prepare_lesson' else ''}?defaultTag={'%2F'.join(item_path.split(':')[1:])}"
-    return f"https://basic.smartedu.cn/tchMaterial/detail?contentType={resource_type}&contentId={content_id}&catalogType=tchMaterial&subCatalog=tchMaterial"
-
-def iter_leaf_resources(items: dict[str, dict], parent_path: str = "") -> Iterator[tuple[str, dict]]: # 遍历分类子树，产出每个末级资源的（树项路径， 资源数据）
-    for option_id, option_data in items.items():
-        item_path = f"{parent_path}:{option_id}" if parent_path else option_id
-        children: dict[str, dict] = option_data.get("children", {})
-        if children: # 分类节点继续向下遍历
-            yield from iter_leaf_resources(children, item_path)
-        else:
-            yield item_path, option_data
-
-def collect_resource_urls(items: dict[str, dict], parent_path: str = "") -> list[str]: # 递归收集分类子树中所有末级资源的链接
-    return [build_resource_url(item_path, resource_data) for item_path, resource_data in iter_leaf_resources(items, parent_path)]
-
-def find_tree_node(items: dict[str, dict], item_path: str) -> dict | None: # 按树项路径在分类树中定位节点数据
-    node = None
-    branch = items
-    for segment in item_path.split(":"):
-        node = branch.get(segment)
-        if node is None:
-            return None
-        branch = node.get("children", {})
-    return node
+__all__ = ["build_resource_tree", "build_resource_url", "collect_resource_urls", "iter_leaf_resources", "find_tree_node"]
 
 def category_check_state(leaf_ids: list[str], checked_items: set[str]) -> str: # 依据子树内末级资源的勾选情况得出分类的三态
     if not leaf_ids:

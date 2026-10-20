@@ -1,0 +1,22 @@
+# 构建上下文排除项：桌面打包产物、测试与本地数据都不进入镜像
+.git
+.github
+.gitignore
+.tmp
+.devfiles
+build
+dist
+*.egg-info
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.venv
+venv
+tests
+docs
+assets
+*.spec
+playwright-cli
+.playwright-cli

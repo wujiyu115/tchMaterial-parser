@@ -41,6 +41,7 @@
 - [✨ 工具特点](#-工具特点)
 - [📥 下载与安装方法](#-下载与安装方法)
 - [🛠️ 使用方法](#️-使用方法)
+- [🌐 Web 版与 Docker 部署](#-web-版与-docker-部署)
 - [❓ 常见问题](#-常见问题)
 - [⭐ Star History](#-star-history)
 - [🤝 参与贡献](#-参与贡献)
@@ -59,6 +60,7 @@
 - 🖥️ **高 DPI 适配**：优化 UI 以适配高分辨率屏幕，避免界面模糊问题。
 - 🌗 **深色模式**：启动时自动跟随系统的浅色/深色模式，也可点击右上角的按钮手动切换，切换结果会被记住。
 - 💻 **跨平台支持**：支持 Windows、Linux、macOS 等操作系统（需要图形界面）。
+- 🌐 **Web 模式**：内置浏览器界面，可在 NAS 或服务器上长期运行，用浏览器浏览资源目录、批量下载，并直接查看已下载的教材（详见 [Web 版与 Docker 部署](#-web-版与-docker-部署)）。
 
 ## 📥 下载与安装方法
 
@@ -68,6 +70,7 @@
 | [📦 **WinGet**](#winget) | Windows 10 / 11 / Server 2025 | `winget install tchMaterial-parser` |
 | [🐧 **AUR**](#arch-用户软件仓库aur) | Arch Linux | `yay -S tchmaterial-parser` |
 | [🐍 **从源码运行**](#从源码运行) | 任意平台（需 Python 3.10+） | [见下文](#从源码运行) |
+| [🐳 **Docker / Web 版**](#-web-版与-docker-部署) | 任意支持 Docker 的平台（含 NAS） | `ghcr.io/wujiyu115/tchmaterial-parser-web` |
 
 ### GitHub Releases
 
@@ -182,6 +185,62 @@ https://basic.smartedu.cn/tchMaterial/detail?contentType=assets_document&content
 
 </div>
 
+## 🌐 Web 版与 Docker 部署
+
+Web 版把桌面界面换成了浏览器页面，适合装在 NAS、小主机或服务器上长期运行：打开网页就能浏览平台资源目录、批量下载，并直接在“教材库”里查看已下载的教材。
+
+### 🐳 使用 Docker 运行
+
+```bash
+docker run -d \
+  --name tchmaterial-parser \
+  -p 8080:8080 \
+  -v /path/to/tchmaterial-data:/data \
+  --restart unless-stopped \
+  ghcr.io/wujiyu115/tchmaterial-parser-web:latest
+```
+
+启动后访问 `http://<主机地址>:8080` 即可。镜像同时提供 `linux/amd64` 与 `linux/arm64`。
+
+也可以用 `docker-compose.yml`（仓库内已附带）：
+
+```bash
+docker compose up -d
+```
+
+### 📦 数据持久化
+
+所有可变数据都放在容器内的 `/data` 目录，只要把它挂载出来，**重建容器或升级镜像都不会丢失教材与记录**：
+
+| 路径 | 内容 |
+| :-- | :-- |
+| `/data/downloads/` | 已下载的教材，按“学段/学科/版本”自动分目录存放 |
+| `/data/records.json` | 下载记录（状态、大小、失败原因等） |
+| `/data/settings.json` | Web 界面设置（如是否添加 PDF 书签） |
+| `/data/thumbnails/` | 教材封面缓存（由 PDF 首页生成，可随时删除） |
+| `/data/data.json` | 登录凭据（仅在设置 Access Token 后生成） |
+
+### ⚙️ 环境变量
+
+| 变量 | 默认值 | 说明 |
+| :-- | :-- | :-- |
+| `PORT` | `8080` | 监听端口 |
+| `HOST` | `0.0.0.0` | 监听地址 |
+| `TCHMATERIAL_DATA_DIR` | `/data` | 数据目录 |
+| `PUID` / `PGID` | `0` / `0` | 运行用户 ID；设为 NAS 上的常用值（如 Unraid 的 `99` / `100`）可避免文件属主异常 |
+| `TZ` | `Asia/Shanghai` | 时区，影响日志与文件时间 |
+
+### 🐍 直接以 Web 模式运行
+
+```bash
+pip install -e ".[web]"
+python -m tchmaterial_parser.web --host 0.0.0.0 --port 8080
+```
+
+不加参数时默认监听 `0.0.0.0:8080`，数据目录默认取当前用户配置目录，可用 `TCHMATERIAL_DATA_DIR` 指定。桌面版原有的启动方式不受影响。
+
+> Web 版与桌面版共用同一套下载引擎，因此 Access Token、镜像重试、PDF 书签等行为与桌面版一致。
+
 ## ❓ 常见问题
 
 <details open>
@@ -215,6 +274,15 @@ https://basic.smartedu.cn/tchMaterial/detail?contentType=assets_document&content
 
 - 本工具**不会上传** Token，也不会存储在云端，仅用于本地请求授权。
 - **请勿在公开场合分享 Token**，以免您的账号被他人使用，造成严重后果。
+
+</details>
+
+<details>
+<summary><b>4. 🌐 Web 版需要设密码吗？</b></summary>
+
+<br />
+
+Web 版**默认不提供登录验证**，任何能访问该端口的人都能使用它下载教材。请仅在**可信的内网**中使用；若需暴露到公网，请自行在前面放一层带身份验证的反向代理（如 Nginx Basic Auth、Authelia、Cloudflare Access 等），不要直接对外开放端口。
 
 </details>
 

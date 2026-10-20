@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 # 界面运行时状态：主窗口、缩放因子，以及跨线程的调度封装
+#
+# Web 版会导入 ui.download_panel 复用下载引擎，而精简镜像里没有 tkinter；
+# 因此用 try/except 容错导入，缺失时仅 tk 为 None，桌面端行为保持不变。
+
+from __future__ import annotations
 
 import threading
-import tkinter as tk
 from collections.abc import Callable
+
+try:
+    import tkinter as tk
+except ImportError: # Web 版镜像未安装 tkinter
+    tk = None
 
 ui_scale = 1.0 # 界面缩放因子，由 app.py 根据屏幕 DPI 写入
 app_closing = False
